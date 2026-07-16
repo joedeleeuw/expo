@@ -18,6 +18,16 @@ class ExpoObserveModule extends NativeModule<ObserveModuleEvents> implements Obs
   logEvent(name: string, options?: LogEventOptions): void {
     AppMetrics.logEvent(name, options);
   }
+  reportError(error: unknown): void {
+    const err = error as { name?: string; message?: string; stack?: string } | undefined;
+    AppMetrics.reportError({
+      source: 'caught',
+      type: err?.name,
+      message: err?.message ?? String(error),
+      stacktrace: err?.stack,
+      isFatal: false,
+    });
+  }
   markFirstRender(): void {
     AppMetrics.markFirstRender();
   }

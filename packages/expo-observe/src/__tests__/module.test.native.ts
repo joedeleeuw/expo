@@ -18,6 +18,7 @@ const mockAppMetrics = {
   markFirstRender: jest.fn(),
   markInteractive: jest.fn(),
   setGlobalAttributes: jest.fn(),
+  reportError: jest.fn(),
 };
 
 jest.mock('expo', () => ({
@@ -370,5 +371,31 @@ describe('module Proxy', () => {
     Observe.setGlobalAttributes({ tier: 'pro' });
     expect(mockAppMetrics.setGlobalAttributes).toHaveBeenCalledWith({ tier: 'pro' });
     expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  it('reports a caught Error as a non-fatal caught-source error', () => {
+    const Observe = loadModule();
+    const error = new Error('boom');
+    Observe.reportError(error);
+    expect(mockAppMetrics.reportError).toHaveBeenCalledWith({
+      source: 'caught',
+      type: 'Error',
+      message: 'boom',
+      stacktrace: error.stack,
+      isFatal: false,
+    });
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  it('normalizes a non-Error thrown value with String() and no stacktrace', () => {
+    const Observe = loadModule();
+    Observe.reportError('just a string');
+    expect(mockAppMetrics.reportError).toHaveBeenCalledWith({
+      source: 'caught',
+      type: undefined,
+      message: 'just a string',
+      stacktrace: undefined,
+      isFatal: false,
+    });
   });
 });

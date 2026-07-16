@@ -47,6 +47,22 @@ const Observe: ObserveModule = new Proxy(native, {
       };
     }
 
+    if (prop === 'reportError') {
+      return (error: unknown) => {
+        // Normalize an arbitrary thrown value the way the global `ErrorUtils` handler does: read
+        // name/message/stack off an `Error`, and fall back to `String(error)` for non-Error throws
+        // (strings, plain objects), which have no stack.
+        const err = error as { name?: string; message?: string; stack?: string } | undefined;
+        AppMetrics.reportError({
+          source: 'caught',
+          type: err?.name,
+          message: err?.message ?? String(error),
+          stacktrace: err?.stack,
+          isFatal: false,
+        });
+      };
+    }
+
     // On Android, the native module is a JSI host object, so `prop in target` (and `hasOwnProperty`) report
     // `true` for names it doesn't implement — a host object has no `has` hook. `Object.keys(target)`
     // goes through `getPropertyNames`, which lists the module's actual members, so use it to forward
